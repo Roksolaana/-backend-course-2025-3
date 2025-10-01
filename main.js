@@ -1,64 +1,71 @@
-const fs = require('fs');
-const readline = require('readline');
-const { Command } = require('commander');
+#!/usr/bin/env node
 
+const fs = require('fs');
+const { Command } = require('commander');
 const program = new Command();
 
 program
-  .requiredOption('-i, --input <path>', 'шлях до файлу для читання')
-  .option('-o, --output <path>', 'шлях до файлу для запису результату')
-  .option('-d, --display', 'вивести результат у консоль');
+  .requiredOption('-i, --input <path>', 'input file path')
+  .option('-o, --output <path>', 'output file path')
+  .option('-d, --display', 'display output in console')
+  .option('-D, --date', 'show flight date')
+  .option('-a, --airtime <number>', 'filter by minimum AIR_TIME', parseFloat);
 
 program.parse(process.argv);
+
 const options = program.opts();
 
-// Перевірка обов'язкового параметра
+// Перевірка обовʼязкового параметру input
 if (!options.input) {
   console.error('Please, specify input file');
   process.exit(1);
 }
 
-// Перевірка існування файлу
-if (!fs.existsSync(options.input)) {
+// Читання файлу
+let rawData;
+try {
+  rawData = fs.readFileSync(options.input, 'utf-8');
+} catch (err) {
   console.error('Cannot find input file');
   process.exit(1);
 }
 
-// Якщо не вказано -o та -d, не виводимо нічого
-if (!options.display && !options.output) {
-  process.exit(0);
+// Парсинг JSON: кожен рядок - окремий обʼєкт
+const lines = rawData.split('\n').filter(line => line.trim() !== '');
+let data;
+try {
+  data = lines.map(line => JSON.parse(line));
+} catch (err) {
+  console.error('Error reading or parsing input file:', err.message);
+  process.exit(1);
 }
 
-const results = [];
-const rl = readline.createInterface({
-  input: fs.createReadStream(options.input),
-  crlfDelay: Infinity
+// Фільтрація за airtime, якщо задано
+let filteredData = data;
+if (options.airtime) {
+  filteredData = data.filter(item => item.AIR_TIME > options.airtime);
+}
+
+// Формування виводу
+const outputLines = filteredData.map(item => {
+  let line = '';
+  if (options.date) line += `${item.FL_DATE} `;
+  line += `${item.AIR_TIME} ${item.DISTANCE}`;
+  return line;
 });
 
-rl.on('line', (line) => {
-  if (line.trim()) {
-    try {
-      const obj = JSON.parse(line);
-      results.push(obj);
-    } catch (err) {
-      console.error('Error reading or parsing input file:', err.message);
-    }
-  }
-});
+const outputText = outputLines.join('\n');
 
-rl.on('close', () => {
-  // Вивід у консоль
-  if (options.display) {
-    console.log(results.slice(0, 10)); // наприклад, перші 10 записів
-  }
+// Вивід у консоль
+if (options.display) console.log(outputText);
 
-  // Запис у файл
-  if (options.output) {
-    try {
-      fs.writeFileSync(options.output, JSON.stringify(results, null, 2), 'utf-8');
-      if (!options.display) console.log(`Результат записано у файл: ${options.output}`);
-    } catch (err) {
-      console.error('Cannot write to output file:', err.message);
-    }
+// Запис у файл
+if (options.output) {
+  try {
+    fs.writeFileSync(options.output, outputText, 'utf-8');
+  } catch (err) {
+    console.error('Error writing to output file:', err.message);
   }
-});
+}
+
+// Якщо не задано ні -d, ні -o, нічого не виводимо
