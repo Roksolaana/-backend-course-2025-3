@@ -1,0 +1,24 @@
+{
+  "name": "backend-course-2025-3",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "author": "Senkiv Roksolana bc2025-3",
+  "license": "ISC",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Roksolaana/-backend-course-2025-3.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/Roksolaana/-backend-course-2025-3/issues"
+  },
+  "homepage": "https://github.com/Roksolaana/-backend-course-2025-3#readme",
+  "dependencies": {
+    "commander": "^14.0.1"
+  }
+}
